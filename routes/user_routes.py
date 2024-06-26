@@ -256,3 +256,127 @@ def update_profile():
     except Exception as e:
         return jsonify({"error": f"Error updating profile: {str(e)}"}), 500
 
+@main_bp.route('/api/user/watched_episodes', methods=['POST'])
+@jwt_required() 
+def add_watched_episodes_route():
+    try:
+        data = request.json
+        series_id = data.get('series_id')
+        season_number = data.get('season_number')
+        episode_numbers = [data.get('episode_numbers')]
+        if not series_id or not season_number or not episode_numbers:
+            return jsonify({"error": "Missing parameters"}), 400
+        user_id = get_jwt_identity()
+        user = User.get_user_by_id_model(user_id)
+        if user:
+            watched_episodes = user.get("watched_episodes", [])
+            series_index = -1
+            for i, series in enumerate(watched_episodes):
+                if series.get("series_id") == series_id:
+                    series_index = i
+                    break
+            if series_index == -1:
+                series_data = {
+                    "series_id": series_id,
+                    "seasons": [
+                        {
+                            "season_number": season_number,
+                            "episodes": episode_numbers
+                        }
+                    ]
+                }
+                watched_episodes.append(series_data)
+            else:
+                season_index = -1
+                for i, season in enumerate(watched_episodes[series_index]["seasons"]):
+                    if season.get("season_number") == season_number:
+                        season_index = i
+                        break
+                if season_index == -1:
+                    season_data = {
+                        "season_number": season_number,
+                        "episodes": episode_numbers
+                    }
+                    watched_episodes[series_index]["seasons"].append(season_data)
+                else:
+                    watched_episodes[series_index]["seasons"][season_index]["episodes"].extend(episode_numbers)
+            db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"watched_episodes": watched_episodes}})
+            return jsonify({"message": "Watched episodes added successfully"}), 200
+        else:
+            return jsonify({"error": "User not found."}), 404
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+@main_bp.route('/api/user/watched_episodes', methods=['DELETE'])
+@jwt_required() 
+def delete_watched_episodes_route():
+    try:
+        data = request.json
+        series_id = data.get('series_id')
+        season_number = data.get('season_number')
+        episode_numbers = [data.get('episode_numbers')]
+        if not series_id or not season_number or not episode_numbers:
+            return jsonify({"error": "Missing parameters"}), 400
+        user_id = get_jwt_identity()
+        user = User.get_user_by_id_model(user_id)
+        if user:
+            watched_episodes = user.get("watched_episodes", [])
+            series_index = -1
+            for i, series in enumerate(watched_episodes):
+                if series.get("series_id") == series_id:
+                    series_index = i
+                    break
+            if series_index != -1:
+                season_index = -1
+                for i, season in enumerate(watched_episodes[series_index]["seasons"]):
+                    if season.get("season_number") == season_number:
+                        season_index = i
+                        break
+                if season_index != -1:
+                    watched_episodes[series_index]["seasons"][season_index]["episodes"] = list(set(watched_episodes[series_index]["seasons"][season_index]["episodes"]) - set(episode_numbers))
+                    db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"watched_episodes": watched_episodes}})
+                    return jsonify({"message": "Watched episodes removed successfully"}), 200
+            return jsonify({"error": "Failed to remove watched episodes"}), 500
+        else:
+            return jsonify({"error": "User not found."}), 404
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+    
+@main_bp.route('/api/user/watched_episodes/<series_id>/<season_number>/<episode_number>', methods=['GET'])
+@jwt_required()
+def check_episode_watched(series_id, season_number, episode_number):
+    try:
+        user_id = get_jwt_identity()
+        user = User.get_user_by_id_model(user_id)
+        if user:
+            watched_episodes = user.get("watched_episodes", [])
+            for series in watched_episodes:
+                if int(series.get("series_id")) == int(series_id):
+                    for season in series.get("seasons", []):
+                        if int(season.get("season_number")) == int(season_number):
+                            if int(episode_number) in season.get("episodes", []):
+                                return jsonify({"watched": True}), 200
+            return jsonify({"watched": False}), 200
+        else:
+            return jsonify({"message": "User not found"}), 404
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+@main_bp.route('/api/user/watched_episodes/<series_id>/<season_number>', methods=['GET'])
+@jwt_required()
+def get_watched_episodes(series_id, season_number):
+    try:
+        user_id = get_jwt_identity()
+        user = User.get_user_by_id_model(user_id)
+        if user:
+            watched_episodes = user.get("watched_episodes", [])
+            for series in watched_episodes:
+                if int(series.get("series_id")) == int(series_id):
+                    for season in series.get("seasons", []):
+                        if int(season.get("season_number")) == int(season_number):
+                            return jsonify({"episodes": season.get("episodes", [])}), 200
+            return jsonify({"message": "Episodes not found"}), 404
+        else:
+            return jsonify({"message": "User not found"}), 404
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500

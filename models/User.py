@@ -22,7 +22,8 @@ class User:
                 "email": email,
                 "role": role,
                 "password": hashed_password_base64,
-                "watched": []
+                "watched": [],
+                "watched_episodes": []
             }
             result = users_collection.insert_one(new_user)
             return str(result.inserted_id)

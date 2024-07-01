@@ -15,7 +15,6 @@ comment_app = Blueprint("Comment_app", __name__)
 user_tk = os.getenv('JWT_SECRET_KEY')
 api_key = os.getenv('TMDB_KEY')
 
-
 @comment_app.route("/api/comment", methods=["POST"])
 @jwt_required()
 def create_comment_route():
@@ -34,7 +33,6 @@ def create_comment_route():
 
         if not username or not media_id or not media_type or not review or not stars:
             return jsonify({"error": "Missing required attributes"}), 400
-
         comment_id = Comment.create_comment(user_id, username, media_id, media_type, review, is_spoiler, stars, title, userRole)
 
         if comment_id:
@@ -49,9 +47,9 @@ def create_comment_route():
 def update_comment_route(comment_id):
     try:
         data = request.json
-
         user_id = get_jwt_identity()
         comment = Comment.get_comment(comment_id)
+        
         if comment and (str(comment.get("user_id")) == str(user_id) or User.get_user_by_id_model(user_id).get('role') == "admin"):
             review = data.get('review')
             is_spoiler = data.get('is_spoiler')
@@ -74,6 +72,7 @@ def delete_comment_route(comment_id):
     try:
         user_id = get_jwt_identity()
         comment = Comment.get_comment(comment_id)
+        
         if comment and (str(comment.get("user_id")) == str(user_id) or User.get_user_by_id_model(user_id).get('role') == "admin"):
             success = Comment.delete_comment(comment_id)
             if success:
@@ -90,8 +89,8 @@ def get_comments_by_media_route(media_type, media_id):
     try:
         comments_collection = db["comment"]
         comments = comments_collection.find({"media_id": media_id, "media_type": media_type})
-
         comments_list = []
+        
         for comment in comments:
             comment["_id"] = str(comment["_id"])
             comment["user_id"] = str(comment["user_id"])
@@ -106,8 +105,8 @@ def get_user_comments(username):
     try:
         comments_collection = db["comment"]
         comments = comments_collection.find({"username": username}, {"_id": 0})
-
         comments_list = []
+        
         for comment in comments:
             comment.pop("_id", None)
             comment.pop("user_id", None)

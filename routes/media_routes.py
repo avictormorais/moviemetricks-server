@@ -7,7 +7,6 @@ from flask import jsonify
 from dotenv import load_dotenv
 load_dotenv()
 
-
 client = MongoClient(os.getenv("MONGODB_URI"))
 db = client.get_database(os.getenv("MONGODB_DBNAME"))
 
@@ -21,9 +20,7 @@ def create_media():
     media_type = data.get('media_type')
 
     if tmdb_id and media_type:
-        
-        media_details = MediaAPI.get_media_details(tmdb_id, media_type, api_key)  
-
+        media_details = MediaAPI.get_media_details(tmdb_id, media_type, api_key)
         media_id_inserido = MediaAPI.add_media_to_database(media_details, db)
 
         if media_id_inserido:
@@ -33,13 +30,11 @@ def create_media():
     else:
         return jsonify({"message": "Missing tmdb_id or media_type parameter"}), 400  
 
-    
-
 @media_app.route("/api/media/get_or_create", methods=["GET"])
 def get_or_create_media_route():
     tmdb_id = request.args.get("tmdb_id")
     media_type = request.args.get("media_type")
-
+    
     if tmdb_id and media_type:
         media_id = MediaAPI.get_or_create_media(tmdb_id, media_type, db, api_key)
         if media_id:
@@ -49,7 +44,6 @@ def get_or_create_media_route():
     else:
         return jsonify({"error": "Invalid request parameters."}), 400
 
-    
 @media_app.route("/api/media", methods=["GET"])
 def get_all_media_route():
     all_media = MediaAPI.get_all_media(db)

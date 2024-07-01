@@ -15,7 +15,6 @@ from flask import jsonify
 load_dotenv()
 client = MongoClient(os.getenv("MONGODB_URI"))
 db = client.get_database(os.getenv("MONGODB_DBNAME"))
-
 api_key = os.getenv('TMDB_KEY')
 main_bp = Blueprint("main_bp", __name__)
 
@@ -24,26 +23,21 @@ def login_route():
     data = request.get_json()
     if "email" not in data or "password" not in data:
         return jsonify({"message": "Faltando email ou senha!"}), 400
-
     email = data["email"]
     password = data["password"]
-
     response, status_code = login(email, password)
     return jsonify(response), status_code
 
 @main_bp.route("/api/cadastro", methods=["POST"])
 def create_user_route():
     data = request.get_json()
+    
     if not all(key in data for key in ["username", "email", "password" ]):
         return jsonify({"message": "Missing required fields"}), 400
-
-
     username = data["username"]
     email = data["email"]
     role = 'user'
     password = data["password"]
-
-
     response, status_code = create_user_controller(email, username, role, password)
     print(response)
     return jsonify(response), status_code
@@ -58,16 +52,18 @@ def data_user_route():
 def get_user_name():
     user_id = get_jwt_identity()
     user = User.get_user_by_id_model(user_id)
+    
     if user:
         return jsonify({"user": user.get("username", "Unknown")}), 200
     else:
         return jsonify({"message": "User not found"}), 404
-    
+
 @main_bp.route('/api/user_id', methods=['GET'])
 @jwt_required()
 def get_user_id():
     user_id = get_jwt_identity()
     user = User.get_user_by_id_model(user_id)
+    
     if user:
         user_role = user.get("role", None)
         is_admin = user_role == "admin"  
@@ -87,6 +83,7 @@ def get_watched_list_by_user():
         userRequested = User.get_user_by_id_model(user_id)
         username = request.args.get('username')
         user = User.get_user_by_username_model(username)
+        
         if user:
             watched_list = user.get("watched", []) 
             if userRequested == user:
@@ -98,7 +95,6 @@ def get_watched_list_by_user():
     except Exception as e:
         print(f"Error retrieving watched list: {e}")
         return jsonify({"error": "Failed to retrieve watched list."}), 500
-
 
 @main_bp.route('/api/user/watched', methods=['GET'])
 @jwt_required()
@@ -177,12 +173,10 @@ def verify_media_seen():
 
         if not media_id or not media_type:
             return jsonify({"error": "Missing parameters 'id' and/or 'type'"}), 400
-
         user = User.get_user_by_id_model(user_id)
 
         if user:
             watched_list = user.get("watched", [])
-
             for media in watched_list:
                 if media.get("tmdb_id") == media_id and media.get("media_type") == media_type:
                     return jsonify({"seen": True}), 200
@@ -210,9 +204,6 @@ def view_profile():
 
     except Exception as e:
         return jsonify({"error": f"Error viewing profile: {str(e)}"}), 500
-
-
-
 
 @main_bp.route("/api/user/profile", methods=["PUT"])
 @jwt_required()
@@ -348,6 +339,7 @@ def check_episode_watched(series_id, season_number, episode_number):
     try:
         user_id = get_jwt_identity()
         user = User.get_user_by_id_model(user_id)
+        
         if user:
             watched_episodes = user.get("watched_episodes", [])
             for series in watched_episodes:
@@ -368,6 +360,7 @@ def get_watched_episodes(series_id, season_number):
     try:
         user_id = get_jwt_identity()
         user = User.get_user_by_id_model(user_id)
+        
         if user:
             watched_episodes = user.get("watched_episodes", [])
             for series in watched_episodes:

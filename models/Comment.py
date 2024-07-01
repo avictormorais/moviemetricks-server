@@ -42,8 +42,8 @@ class Comment:
     def update_comment(comment_id, review, is_spoiler, stars):
         try:
             collection = db["comment"]
-            
             result = collection.update_one({"_id": ObjectId(comment_id)}, {"$set": {"review": review, "is_spoiler": is_spoiler, "stars": stars}})
+            
             if result.modified_count == 1:
                 print("Comment updated successfully")
                 return True
@@ -69,14 +69,13 @@ class Comment:
         except Exception as e:
             print("Error deleting comment:", e)
             return None
-        
 
     @staticmethod
     def get_comment(comment_id):
         try:
             collection = db["comment"]
-
             comment = collection.find_one({"_id": ObjectId(comment_id)})
+            
             if comment:
                 return comment
             else:

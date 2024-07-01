@@ -7,7 +7,6 @@ from bson import ObjectId
 from werkzeug.exceptions import BadRequest 
 from middleware.all_middleware import verify_email_registered, verify_username_registered, verify_username
 
-
 def login(email, password):
     user = User.get_user_by_email_model(email)
     if user and bcrypt.checkpw(password.encode(), base64.b64decode(user["password"].encode())):
@@ -29,7 +28,6 @@ def create_user_controller(email, username, role, password):
         return({"message": "Username is not available"}, 401)
     if username_contains_space:
         return ({"message": "Username cannot contain spaces"}, 400)
-
 
     hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
     hashed_password_base64 = base64.b64encode(hashed_password).decode()
@@ -58,6 +56,3 @@ def get_user_data():
 
     except Exception as e:
         return make_response(jsonify({"error": f"Unknown error: {str(e)}"}), 500)
-    
-
-

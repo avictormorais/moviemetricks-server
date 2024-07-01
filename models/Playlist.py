@@ -9,7 +9,6 @@ client = MongoClient(os.getenv("MONGODB_URI"))
 db = client.get_database(os.getenv("MONGODB_DBNAME"))
 api_key= os.getenv('TMDB_KEY')
 
-
 class Playlist:
     @staticmethod
     def create_playlist_model(userId, name):
@@ -35,7 +34,6 @@ class Playlist:
         except Exception as e:
             print(f"Error getting playlist by id: {e}")
             return None
-    
 
     @staticmethod
     def add_to_playlist(playlist_id, tmdb_id, media_type, api_key):
@@ -67,7 +65,6 @@ class Playlist:
         print(f"Error adding media to playlist: {e}")
         return False
     
-
     @staticmethod
     def remove_from_playlist(playlist_id, tmdb_id, media_type):
      try:
@@ -85,4 +82,3 @@ class Playlist:
      except Exception as e:
         print(f"Error removing media from playlist: {e}")
         return False
-

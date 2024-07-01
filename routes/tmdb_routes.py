@@ -15,7 +15,6 @@ def get_logo():
 
     if not (api_key and tipo and id and height):
         return jsonify({"error": "Parâmetros ausentes"}), 400
-
     url = f"https://api.themoviedb.org/3/{tipo}/{id}/images"
     parametros = {'api_key': api_key}
     response = requests.get(url, params=parametros)
@@ -24,6 +23,7 @@ def get_logo():
         data = response.json()
         pt_item = next((item for item in data.get('logos', []) if item.get('iso_639_1') == 'pt'), None)
         selected_item = pt_item or next((item for item in data.get('logos', []) if item.get('iso_639_1') == 'en'), None)
+        
         if selected_item:
             url = f"https://image.tmdb.org/t/p/{height}{selected_item.get('file_path')}"
             return jsonify({"logo": url})
@@ -35,17 +35,18 @@ def get_logo():
 @tmdb_bp.route("/tmdb/popular", methods=["GET"])
 def get_popular_media():
     tipo = request.args.get('tipo')
+    
     if not tipo:
         return jsonify({"error": "Parâmetros ausentes"}), 400
     url = f"https://api.themoviedb.org/3/trending/{tipo}/week?api_key={api_key}&append_to_response=images%2Caggregate_credits%2Cwatch_providers%2Csimilar%2Cexternal_ids%2Ccontent_ratings%2Creleases&language=pt-BR"
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json()
+        
         if data.get('results'):
             media = data['results'][0]
             media_id = media['id']
             
-            # Obtendo o logo do media
             media_logo = None
             url_logo = f"https://api.themoviedb.org/3/{tipo}/{media_id}/images"
             parametros = {'api_key': api_key}
@@ -61,6 +62,7 @@ def get_popular_media():
             media_details = None
             url_details = f"https://api.themoviedb.org/3/{tipo}/{media_id}?api_key={api_key}&append_to_response=images%2Caggregate_credits%2Cwatch_providers%2Csimilar%2Cexternal_ids%2Ccontent_ratings%2Creleases&language=pt-BR"
             response_details = requests.get(url_details)
+            
             if response_details.status_code == 200:
                 media_details = response_details.json()
             
@@ -113,10 +115,12 @@ def get_media_trailer():
 @tmdb_bp.route("/tmdb/genres", methods=["GET"])
 def get_genre_content():
     tipo = request.args.get('tipo')
+    
     if not tipo:
         return jsonify({"error": "Parâmetros ausentes"}), 400
     url = f"https://api.themoviedb.org/3/genre/{tipo}/list?api_key={api_key}&language=pt-BR"
     response = requests.get(url)
+    
     if response.status_code == 200:
         data = response.json()
         return jsonify({"genres": data})
@@ -126,10 +130,12 @@ def get_genre_content():
 @tmdb_bp.route("/tmdb/trending", methods=["GET"])
 def fetch_genre_content():
     tipo = request.args.get('tipo')
+    
     if not tipo:
         return jsonify({"error": "Parâmetros ausentes"}), 400
     url = f"https://api.themoviedb.org/3/trending/{tipo}/week?api_key={api_key}&language=pt-BR"
     response = requests.get(url)
+    
     if response.status_code == 200:
         data = response.json()
         return jsonify({"trending": data})
@@ -144,6 +150,7 @@ def fetch_bygenre_content():
         return jsonify({"error": "Parâmetros ausentes"}), 400
     url = f"https://api.themoviedb.org/3/discover/{tipo}?api_key={api_key}&language=pt-BR&with_genres={genre_id}&certification_country=BR&certification.lte=14&page=1"
     response = requests.get(url)
+    
     if response.status_code == 200:
         data = response.json()
         return jsonify({"genre_content": data})
@@ -154,6 +161,7 @@ def fetch_bygenre_content():
 def fetch_now_playing():
     url = f"https://api.themoviedb.org/3/movie/now_playing?api_key={api_key}&language=pt-BR&page=1"
     response = requests.get(url)
+    
     if response.status_code == 200:
         data = response.json()
         return jsonify({"now_playing": data})
@@ -167,6 +175,7 @@ def search_tmdb():
         return jsonify({"error": "Parâmetros ausentes"}), 400
     url = f"https://api.themoviedb.org/3/search/multi?api_key={api_key}&language=pt-BR&query={query}&page=1"
     response = requests.get(url)
+    
     if response.status_code == 200:
         data = response.json()
         return jsonify({"search_results": data})
@@ -179,12 +188,12 @@ def fetch_watch_providers():
     id = request.args.get('id')
     url = f"https://api.themoviedb.org/3/{tipo}/{id}/watch/providers?api_key={api_key}&language=pt-BR"
     response = requests.get(url)
+    
     if response.status_code == 200:
         data = response.json()
         return jsonify({"providers": data})
     else:
         return jsonify({"error": "Não foi possível obter os providers."}), response.status_code
-    
 
 @tmdb_bp.route("/tmdb/season", methods=["GET"])
 def fetch_season():
@@ -192,23 +201,25 @@ def fetch_season():
     season = request.args.get('season')
     url = f"https://api.themoviedb.org/3/tv/{id}/season/{season}?api_key={api_key}&language=pt-BR"
     response = requests.get(url)
+    
     if response.status_code == 200:
         data = response.json()
         return jsonify({"season": data})
     else:
         return jsonify({"error": "Não foi possível obter os dados da temporada"}), response.status_code
-    
+
 @tmdb_bp.route("/tmdb/person", methods=["GET"])
 def fetch_person():
     id = request.args.get('id')
     url = f"https://api.themoviedb.org/3/person/{id}?api_key={api_key}&language=pt-BR&append_to_response=external_ids%2Ccombined_credits"
     response = requests.get(url)
+    
     if response.status_code == 200:
         data = response.json()
         return jsonify({"person": data})
     else:
         return jsonify({"error": "Não foi possível obter os dados da pessoa"}), response.status_code
-    
+
 @tmdb_bp.route("/tmdb/credits", methods=["GET"])
 def fetch_episode_actors():
     tv_id = request.args.get('id')
@@ -216,6 +227,7 @@ def fetch_episode_actors():
     episode_number = request.args.get('episode_number')
     url = f"https://api.themoviedb.org/3/tv/{tv_id}/season/{season_number}/episode/{episode_number}/credits?api_key={api_key}&language=pt-BR"
     response = requests.get(url)
+    
     if response.status_code == 200:
         data = response.json()
         return jsonify(data)

@@ -1,9 +1,5 @@
-from flask import jsonify, make_response
-from flask_jwt_extended import create_access_token, get_jwt_identity
 from models.Person import Person
 from models.User import User
-from bson import ObjectId
-from werkzeug.exceptions import BadRequest 
 from middleware.all_middleware import verify_person
 
 def create_person_controller(personId, username):

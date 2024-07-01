@@ -7,16 +7,10 @@ import os
 from dotenv import load_dotenv
 import requests
 
-
-
 load_dotenv()
 client = MongoClient(os.getenv("MONGODB_URI"))
 db = client.get_database(os.getenv("MONGODB_DBNAME"))
 api_key= os.getenv('TMDB_KEY')
-
-
-
-
 
 class MediaAPI:
     @staticmethod
@@ -60,7 +54,6 @@ class MediaAPI:
         else:
             print("Failed to add media to database.")
             return None
-
     
     @staticmethod
     def get_or_create_media(tmdb_id, media_type, api_key):  
@@ -76,7 +69,6 @@ class MediaAPI:
                 return media_details
             else:
                 return None
-
 
     @staticmethod
     def get_media_comments(tmdb_id, db):
@@ -94,20 +86,18 @@ class MediaAPI:
         collection = db["media"]
         all_media = collection.find({}, {"_id": 0}) 
         return list(all_media)
-    
-
 
     @staticmethod
     def add_comment_to_media(tmdb_id, comment_id, review, user_id, media_type, media_title, is_spoiler, stars):
      try:
         media_details = MediaAPI.get_or_create_media(tmdb_id, media_type, api_key)
-
+        
         if not media_details:
             print("Failed to get media details")
             return False
-
         collection = db["media"]
         media = collection.find_one({"tmdb_id": tmdb_id})
+        
         if not media:
             print("Media not found")
             return False
@@ -143,15 +133,12 @@ class MediaAPI:
         print(f"Error adding comment to media: {e}")
         return False
 
-
     @staticmethod
     def get_all_media_comments():
         try:
             collection = db["media"]
             media_with_comments = collection.find({"comments": {"$exists": True, "$ne": []}})
-
             media_list = [json.loads(json_util.dumps(media)) for media in media_with_comments]
-
             return media_list
         except Exception as e:
             print(f"Error retrieving media with comments: {e}")
@@ -162,7 +149,7 @@ class MediaAPI:
      try:
         collection = db["media"]
         media_with_comments = collection.find_one({"tmdb_id": tmdb_id, "media_type": media_type})
-
+        
         if media_with_comments:
             return json.loads(json_util.dumps([media_with_comments]))
         else:
@@ -170,5 +157,3 @@ class MediaAPI:
      except Exception as e:
         print(f"Error retrieving media with comments: {e}")
         return None
-     
-

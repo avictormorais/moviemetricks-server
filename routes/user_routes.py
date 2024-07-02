@@ -1,15 +1,14 @@
 
 import os
 import bcrypt
-import base64
 from bson import ObjectId
 from dotenv import load_dotenv
 from flask import request,jsonify, Blueprint
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from pymongo import MongoClient
 from controller.user_controller import login, create_user_controller, get_user_data
-from models.Media import MediaAPI
 from models.User import User
+from models.Comment import Comment
 from flask import jsonify
 
 load_dotenv()
@@ -236,6 +235,7 @@ def update_profile():
             user["password"] = hashed_password.decode("utf-8")
             
         if username:
+            Comment.update_user_comments(user["username"], username)
             user["username"] = username
         
         if new_email:

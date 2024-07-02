@@ -84,3 +84,20 @@ class Comment:
         except Exception as e:
             print("Error retrieving comment:", e)
             return None
+        
+    @staticmethod
+    def update_user_comments(old_username, new_username):
+        try:
+            collection = db["comment"]
+            print(old_username, new_username)
+            result = collection.update_many({"username": old_username}, {"$set": {"username": new_username}})
+            
+            if result.modified_count > 0:
+                print("User comments updated successfully")
+                return True
+            else:
+                print("No user comments found or not updated")
+                return False
+        except Exception as e:
+            print("Error updating user comments:", e)
+            return None

@@ -4,7 +4,6 @@ from flask import Flask
 from flask_jwt_extended import JWTManager
 from routes.user_routes import main_bp
 from routes.tmdb_routes import tmdb_bp
-from routes.media_routes import media_app
 from routes.comment_routes import comment_app
 from routes.person_routes import person_app
 from routes.playlist_routes import play_app
@@ -31,7 +30,6 @@ CORS(app)
 
 app.register_blueprint(main_bp)
 app.register_blueprint(tmdb_bp)
-app.register_blueprint(media_app)
 app.register_blueprint(comment_app)
 app.register_blueprint(person_app)
 app.register_blueprint(play_app)

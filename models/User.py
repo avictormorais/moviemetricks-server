@@ -82,7 +82,7 @@ class User:
       try:
         user_id = get_jwt_identity()
         if user_id:
-            media_details = MediaAPI.get_or_create_media(tmdb_id, media_type, api_key)
+            media_details = MediaAPI.get_media_details(tmdb_id, media_type, api_key)
             if media_details:
                 users_collection = db.users
                 result = users_collection.update_one(
@@ -114,7 +114,7 @@ class User:
             user_id = get_jwt_identity()
             user = User.get_user_by_id_model(user_id)
             if user:
-                media_details = MediaAPI.get_or_create_media(tmdb_id, media_type, api_key)
+                media_details = MediaAPI.get_media_details(tmdb_id, media_type, api_key)
                 if media_details:
                     users_collection = db.users
                     result = users_collection.update_one(

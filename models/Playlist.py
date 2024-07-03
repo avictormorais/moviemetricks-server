@@ -1,6 +1,7 @@
 from pymongo import MongoClient
 from bson import ObjectId
 import requests
+from models.Media import MediaAPI
 
 class Playlist:
     @staticmethod
@@ -33,7 +34,7 @@ class Playlist:
         try:
             playlist = Playlist.get_playlist_by_id(playlist_id, db)
             if playlist and playlist["user_id"] == user_id:
-                media_details = Playlist.get_media_details(tmdb_id, media_type, api_key)
+                media_details = MediaAPI.get_media_details(tmdb_id, media_type, api_key)
                 if media_details:
                     print(media_details)
                     playlists_collection = db.playlists
@@ -90,20 +91,3 @@ class Playlist:
         except Exception as e:
             print(f"Error deleting playlist: {e}")
             return False
-        
-    @staticmethod
-    def get_media_details(tmdb_id, media_type, api_key):
-        try:
-            response = requests.get(f'https://api.themoviedb.org/3/{media_type}/{tmdb_id}?api_key={api_key}&language=pt-br')
-            data = response.json()
-            return {
-                "tmdb_id": tmdb_id,
-                "media_type": media_type,
-                "title": data.get("title") or data.get("name"),
-                "poster_path": data.get("poster_path") or "N/A",
-                "vote_average": data.get("vote_average") or 0,
-                "release_date": data.get("release_date") or data.get("first_air_date")
-            }
-        except Exception as e:
-            print(f"Error getting media details: {e}")
-            return None

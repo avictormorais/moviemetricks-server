@@ -28,6 +28,10 @@ def create_user_controller(email, username, role, password):
         return({"message": "Username is not available"}, 401)
     if username_contains_space:
         return ({"message": "Username cannot contain spaces"}, 400)
+    if "@" not in email:
+        return {"message": "Invalid email format"}, 400
+    if len(password) < 6:
+        return {"message": "Password must be at least 6 characters long"}, 400
 
     hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
     hashed_password_base64 = base64.b64encode(hashed_password).decode()

@@ -1,14 +1,8 @@
 import os
-import bcrypt
-import base64
-from bson import ObjectId
 from dotenv import load_dotenv
 from flask import request,jsonify, Blueprint
-from flask_jwt_extended import get_jwt_identity, jwt_required
 from pymongo import MongoClient
 from controller.person_controller import create_person_controller
-from models.Media import MediaAPI
-from models.User import User
 from flask import jsonify
 
 load_dotenv()

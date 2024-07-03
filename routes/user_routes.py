@@ -10,6 +10,7 @@ from controller.user_controller import login, create_user_controller, get_user_d
 from models.User import User
 from models.Comment import Comment
 from flask import jsonify
+import base64
 
 load_dotenv()
 client = MongoClient(os.getenv("MONGODB_URI"))
@@ -231,8 +232,9 @@ def update_profile():
             return jsonify({"error": "Email already used"}), 401
         
         if new_password:
-            hashed_password = bcrypt.hashpw(new_password.encode("utf-8"), bcrypt.gensalt())
-            user["password"] = hashed_password.decode("utf-8")
+            hashed_password = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt())
+            hashed_password_base64 = base64.b64encode(hashed_password).decode()
+            user["password"] = hashed_password_base64
             
         if username:
             Comment.update_user_comments(user["username"], username)

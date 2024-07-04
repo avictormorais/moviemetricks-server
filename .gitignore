@@ -17,3 +17,5 @@ env/
 *.swp
 *~
 .env
+vercel.json
+.vercel

@@ -7,6 +7,7 @@ from routes.tmdb_routes import tmdb_bp
 from routes.comment_routes import comment_app
 from routes.person_routes import person_app
 from routes.playlist_routes import play_app
+from routes.notification_routes import notification_bp
 import os
 from pymongo import MongoClient
 from flask_cors import CORS
@@ -33,6 +34,7 @@ app.register_blueprint(tmdb_bp)
 app.register_blueprint(comment_app)
 app.register_blueprint(person_app)
 app.register_blueprint(play_app)
+app.register_blueprint(notification_bp)
 
 if __name__ == "__main__":
     app.run(debug=True)

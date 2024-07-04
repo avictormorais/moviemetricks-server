@@ -56,3 +56,18 @@ def get_notification():
         return jsonify({"notification_enabled": False}), 200
     else:
         return jsonify({"notification_enabled": True}), 200
+    
+@notification_bp.route('/check_releases', methods=['GET'])
+def check_releases():
+    try:
+        Notification.notify_users()
+        return jsonify({"status": "success", "message": "Release check completed."}), 200
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+    
+@notification_bp.route('/api/notifications', methods=['GET'])
+@jwt_required()
+def get_user_notifications():
+    user_id = get_jwt_identity()
+    notifications = Notification.get_user_notifications(user_id)
+    return jsonify(notifications), 200

@@ -14,6 +14,8 @@ api_key = os.getenv('TMDB_KEY')
 current_date = datetime.now().date()
 to_verify_movies_collection = db.toVerifyMovies
 to_notify_movies_collection = db.toNotifyMovies
+to_verify_movies_collection = db.toVerifySeries
+to_notify_movies_collection = db.toNotifySeries
 
 class Notification:
     @staticmethod
@@ -102,6 +104,91 @@ class Notification:
             print(f"Error getting movie notification: {e}")
             return None
         
+    @staticmethod
+    def create_or_get_series(seriesId):
+        try:
+            series = to_verify_movies_collection.find_one({"serieId": seriesId})
+            url = f"https://api.themoviedb.org/3/tv/{seriesId}"
+            parametros = {'api_key': api_key}
+            response = requests.get(url, params=parametros)
+
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("status") == "Ended" or data.get("status") == "Canceled":
+                    return None
+                release_date = data.get('next_episode_to_air')
+                if release_date:
+                    release_date = release_date.get('air_date')
+                if series is None:
+                    new_series = {
+                        "serieId": seriesId,
+                        "date": release_date,
+                        "users_count": 0
+                    }
+                    result = to_verify_movies_collection.insert_one(new_series)
+                    return str(result.inserted_id)
+                else:
+                    if series.get('date') == release_date:
+                        return str(series.get('_id'))
+                    else:
+                        to_verify_movies_collection.update_one(
+                            {"serieId": seriesId},
+                            {"$set": {"date": release_date}}
+                        )
+                        return str(series.get('_id'))
+            else:
+                print(f"Error getting release date: {response.status_code}")
+                return None
+        except Exception as e:
+            print(f"Error creating or getting series: {e}")
+            return None
+        
+    @staticmethod
+    def add_serie_to_notify(userId, seriesId):
+        try:
+            series = to_notify_movies_collection.find_one({"userId": userId, "serieId": seriesId})
+            if series is None:
+                new_series = {
+                    "userId": userId,
+                    "serieId": seriesId
+                }
+                result = to_notify_movies_collection.insert_one(new_series)
+                to_verify_movies_collection.update_one(
+                    {"serieId": seriesId},
+                    {"$inc": {"users_count": 1}}
+                )
+                return str(result.inserted_id)
+            else:
+                return str(series.get('_id'))
+        except Exception as e:
+            print(f"Error adding series to notify: {e}")
+            return None
+        
+    @staticmethod
+    def remove_serie_to_notify(userId, seriesId):
+        try:
+            result = to_notify_movies_collection.delete_one({"userId": userId, "serieId": seriesId})
+            to_verify_movies_collection.update_one(
+                {"serieId": seriesId},
+                {"$inc": {"users_count": -1}}
+            )
+            series = to_verify_movies_collection.find_one({"serieId": seriesId})
+            if series.get('users_count', 0) == 0:
+                to_verify_movies_collection.delete_one({"serieId": seriesId})
+            return result.deleted_count
+        except Exception as e:
+            print(f"Error removing series to notify: {e}")
+            return None
+    
+    @staticmethod
+    def get_serie_notification(userId, seriesId):
+        try:
+            series = to_notify_movies_collection.find_one({"userId": userId, "serieId": seriesId})
+            return series
+        except Exception as e:
+            print(f"Error getting series notification: {e}")
+            return None
+    
     @staticmethod
     def notify_users():
         try:

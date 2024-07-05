@@ -26,7 +26,23 @@ def create_notification():
     else:
         Notification.add_movie_to_notify(user_id, movie_id)
         return jsonify({"message": "Movie created successfully"}), 201
-      
+    
+@notification_bp.route('/api/notification/series', methods=['POST'])
+@jwt_required()
+def create_series_notification():
+    user_id = get_jwt_identity()
+    serie_id = request.json.get('id')
+    
+    if serie_id is None:
+        return jsonify({"error": "Serie id is required"}), 400
+    
+    result = Notification.create_or_get_series(serie_id)
+    if result is None:
+        return jsonify({"error": "Error creating serie"}), 500
+    else:
+        Notification.add_serie_to_notify(user_id, serie_id)
+        return jsonify({"message": "Serie created successfully"}), 201
+
 @notification_bp.route('/api/notification/movie', methods=['DELETE'])
 @jwt_required()
 def remove_notification():
@@ -41,7 +57,22 @@ def remove_notification():
         return jsonify({"error": "Error removing movie"}), 500
     else:
         return jsonify({"message": "Movie removed successfully"}), 200
-      
+    
+@notification_bp.route('/api/notification/series', methods=['DELETE'])
+@jwt_required()
+def remove_series_notification():
+    user_id = get_jwt_identity()
+    serie_id = request.json.get('id')
+    
+    if serie_id is None:
+        return jsonify({"error": "Serie id is required"}), 400
+    
+    result = Notification.remove_serie_to_notify(user_id, serie_id)
+    if result is None:
+        return jsonify({"error": "Error removing serie"}), 500
+    else:
+        return jsonify({"message": "Serie removed successfully"}), 200
+
 @notification_bp.route('/api/notification/movie', methods=['GET'])
 @jwt_required()
 def get_notification():
@@ -52,6 +83,21 @@ def get_notification():
         return jsonify({"error": "Movie id is required"}), 400
     
     result = Notification.get_movie_notification(user_id, movie_id)
+    if result is None:
+        return jsonify({"notification_enabled": False}), 200
+    else:
+        return jsonify({"notification_enabled": True}), 200
+    
+@notification_bp.route('/api/notification/series', methods=['GET'])
+@jwt_required()
+def get_series_notification():
+    user_id = get_jwt_identity()
+    serie_id = request.args.get('id')
+    
+    if serie_id is None:
+        return jsonify({"error": "Serie id is required"}), 400
+    
+    result = Notification.get_serie_notification(user_id, serie_id)
     if result is None:
         return jsonify({"notification_enabled": False}), 200
     else:

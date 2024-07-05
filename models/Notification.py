@@ -1,10 +1,10 @@
 from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timedelta
 import requests
 from bson import ObjectId
-                    
+
 load_dotenv()
 client = MongoClient(os.getenv("MONGODB_URI"))
 db = client.get_database("Notification")
@@ -25,7 +25,6 @@ class Notification:
             url = f"https://api.themoviedb.org/3/movie/{movieId}/release_dates"
             parametros = {'api_key': api_key}
             response = requests.get(url, params=parametros)
-
             if response.status_code == 200:
                 data = response.json()
                 data.get('results').sort(key=lambda x: x.get('iso_3166_1'))
@@ -77,7 +76,7 @@ class Notification:
                 return str(movie.get('_id'))
         except Exception as e:
             print(f"Error adding movie to notify: {e}")
-            return None   
+            return None
 
     @staticmethod
     def remove_movie_to_notify(userId, movieId):
@@ -103,7 +102,7 @@ class Notification:
         except Exception as e:
             print(f"Error getting movie notification: {e}")
             return None
-        
+
     @staticmethod
     def create_or_get_series(seriesId):
         try:
@@ -111,7 +110,6 @@ class Notification:
             url = f"https://api.themoviedb.org/3/tv/{seriesId}"
             parametros = {'api_key': api_key}
             response = requests.get(url, params=parametros)
-
             if response.status_code == 200:
                 data = response.json()
                 if data.get("status") == "Ended" or data.get("status") == "Canceled":
@@ -142,7 +140,7 @@ class Notification:
         except Exception as e:
             print(f"Error creating or getting series: {e}")
             return None
-        
+
     @staticmethod
     def add_serie_to_notify(userId, seriesId):
         try:
@@ -163,7 +161,7 @@ class Notification:
         except Exception as e:
             print(f"Error adding series to notify: {e}")
             return None
-        
+
     @staticmethod
     def remove_serie_to_notify(userId, seriesId):
         try:
@@ -179,7 +177,7 @@ class Notification:
         except Exception as e:
             print(f"Error removing series to notify: {e}")
             return None
-    
+
     @staticmethod
     def get_serie_notification(userId, seriesId):
         try:
@@ -188,18 +186,69 @@ class Notification:
         except Exception as e:
             print(f"Error getting series notification: {e}")
             return None
-    
+
+    @staticmethod
+    def update_series_dates():
+        try:
+            current_date = str(datetime.now()).split(' ')[0]
+            series_to_update = to_verify_series_collection.find({
+                "$or": [
+                    {"last_checked": {"$exists": False}},
+                    {"last_checked": {"$lt": current_date}}
+                ]
+            })
+            for series in series_to_update:
+                seriesId = series["serieId"]
+                url = f"https://api.themoviedb.org/3/tv/{seriesId}"
+                parametros = {'api_key': api_key}
+                response = requests.get(url, params=parametros)
+                if response.status_code == 200:
+                    data = response.json()
+                    if data.get("status") == "Ended" or data.get("status") == "Canceled":
+                        to_verify_series_collection.delete_one({"serieId": seriesId})
+                        continue
+                    release_date = data.get('next_episode_to_air')
+                    if release_date:
+                        release_date = release_date.get('air_date')
+                        if series["date"] is None:
+                            notifications = list(to_notify_series_collection.find({"serieId": series["serieId"]}))
+                            for notification in notifications:
+                                userId = notification["userId"]
+                                notification_obj = {
+                                    "id": str(ObjectId()),
+                                    "type": 'new_release_date',
+                                    "contentId": series["serieId"],
+                                    "contentType": 'serie',
+                                    "date": current_date,
+                                    "new_date": release_date
+                                }
+                                db_users.users.update_one(
+                                    {"_id": ObjectId(userId)},
+                                    {"$push": {"notifications": notification_obj}}
+                                )
+                        to_verify_series_collection.update_one(
+                            {"serieId": seriesId},
+                            {"$set": {"date": release_date, "last_checked": current_date}}
+                        )
+                    else:
+                        print(f"Release date not found for seriesId: {seriesId}")
+                else:
+                    print(f"Error fetching series details, status code: {response.status_code}")
+        except Exception as e:
+            print(f"Error updating series dates: {e}")
+
+
     @staticmethod
     def notify_users():
         try:
-            current_date = '2024-07-11'
+            Notification.update_series_dates()
+            current_date = str(datetime.now()).split(' ')[0]
             
             movies_to_notify = to_verify_movies_collection.find({"date": {"$eq": current_date}})
             for movie in movies_to_notify:
                 notifications = list(to_notify_movies_collection.find({"movieId": movie["movieId"]}))
                 for notification in notifications:
                     userId = notification["userId"]
-                    
                     notification_obj = {
                         "id": str(ObjectId()),
                         "type": 'release',
@@ -207,20 +256,18 @@ class Notification:
                         "contentType": 'movie',
                         "date": current_date
                     }
-                    
                     db_users.users.update_one(
                         {"_id": ObjectId(userId)},
                         {"$push": {"notifications": notification_obj}}
                     )
                     to_notify_movies_collection.delete_one({"_id": notification["_id"]})
                 to_verify_movies_collection.delete_one({"_id": movie["_id"]})
-        
+            
             series_to_notify = to_verify_series_collection.find({"date": {"$eq": current_date}})
             for series in series_to_notify:
                 notifications = list(to_notify_series_collection.find({"serieId": series["serieId"]}))
                 for notification in notifications:
                     userId = notification["userId"]
-                    
                     notification_obj = {
                         "id": str(ObjectId()),
                         "type": 'release',
@@ -228,14 +275,13 @@ class Notification:
                         "contentType": 'serie',
                         "date": current_date
                     }
-                    
                     db_users.users.update_one(
                         {"_id": ObjectId(userId)},
                         {"$push": {"notifications": notification_obj}}
                     )
         except Exception as e:
             print(f"Error notifying users: {e}")
-            
+
     @staticmethod
     def get_user_notifications(userId):
         try:

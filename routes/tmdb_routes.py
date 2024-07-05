@@ -233,3 +233,21 @@ def fetch_episode_actors():
         return jsonify(data)
     else:
         return jsonify({"error": "Não foi possível obter os atores do episódio"}), response.status_code
+    
+@tmdb_bp.route("/tmdb/release_date", methods=["GET"])
+def get_release_date():
+    movie_id = request.args.get('id')
+    url = f"https://api.themoviedb.org/3/movie/{movie_id}/release_dates"
+    parametros = {'api_key': api_key}
+    response = requests.get(url, params=parametros)
+
+    if response.status_code == 200:
+        data = response.json()
+        data.get('results', []).sort(key=lambda x: x.get('iso_3166_1'))
+        brasil_release = next((result for result in data.get('results', []) if result.get('iso_3166_1') == 'BR'), None)
+        
+        if brasil_release:
+            release_dates = brasil_release.get('release_dates', [])[0].get('release_date')
+            return jsonify({"release_dates": release_dates})
+        else:
+            return jsonify({"error": "Não foi possível obter a data de lançamento"}), 404

@@ -22,41 +22,50 @@ class Notification:
     def create_or_get_movie(movieId):
         try:
             movie = to_verify_movies_collection.find_one({"movieId": movieId})
-            url = f"https://api.themoviedb.org/3/movie/{movieId}/release_dates"
+            url = f"https://api.themoviedb.org/3/movie/{movieId}"
             parametros = {'api_key': api_key}
             response = requests.get(url, params=parametros)
             if response.status_code == 200:
                 data = response.json()
-                data.get('results').sort(key=lambda x: x.get('iso_3166_1'))
-                brasil_release = next((result for result in data.get('results') if result.get('iso_3166_1') == 'BR'), None)
-                if brasil_release:
-                    release_date = brasil_release.get('release_dates')[0].get('release_date')
-                    if release_date.find('T'):
-                        release_date = release_date.split('T')[0]
-                    if movie is None:
-                        new_movie = {
-                            "movieId": movieId,
-                            "date": release_date,
-                            "users_count": 0
-                        }
-                        result = to_verify_movies_collection.insert_one(new_movie)
-                        return str(result.inserted_id)
-                    else:
-                        if movie.get('date') == release_date:
-                            return str(movie.get('_id'))
+                release_dates_url = f"https://api.themoviedb.org/3/movie/{movieId}/release_dates"
+                release_dates_response = requests.get(release_dates_url, params=parametros)
+                if release_dates_response.status_code == 200:
+                    release_dates_data = release_dates_response.json()
+                    release_dates_data.get('results').sort(key=lambda x: x.get('iso_3166_1'))
+                    brasil_release = next((result for result in release_dates_data.get('results') if result.get('iso_3166_1') == 'BR'), None)
+                    if brasil_release:
+                        release_date = brasil_release.get('release_dates')[0].get('release_date')
+                        if release_date.find('T'):
+                            release_date = release_date.split('T')[0]
+                        title = data.get('title')
+                        if movie is None:
+                            new_movie = {
+                                "movieId": movieId,
+                                "date": release_date,
+                                "title": title,
+                                "users_count": 0
+                            }
+                            result = to_verify_movies_collection.insert_one(new_movie)
+                            return str(result.inserted_id)
                         else:
-                            to_verify_movies_collection.update_one(
-                                {"movieId": movieId},
-                                {"$set": {"date": release_date}}
-                            )
-                            return str(movie.get('_id'))
+                            if movie.get('date') == release_date:
+                                return str(movie.get('_id'))
+                            else:
+                                to_verify_movies_collection.update_one(
+                                    {"movieId": movieId},
+                                    {"$set": {"date": release_date, "title": title}}
+                                )
+                                return str(movie.get('_id'))
+                else:
+                    print(f"Error getting release date: {release_dates_response.status_code}")
+                    return None
             else:
-                print(f"Error getting release date: {response.status_code}")
+                print(f"Error getting movie details: {response.status_code}")
                 return None
         except Exception as e:
             print(f"Error creating or getting movie: {e}")
             return None
-
+    
     @staticmethod
     def add_movie_to_notify(userId, movieId):
         try:
@@ -121,6 +130,7 @@ class Notification:
                     new_series = {
                         "serieId": seriesId,
                         "date": release_date,
+                        "title": data.get("name"),
                         "users_count": 0
                     }
                     result = to_verify_series_collection.insert_one(new_series)
@@ -148,7 +158,7 @@ class Notification:
             if series is None:
                 new_series = {
                     "userId": userId,
-                    "serieId": seriesId
+                    "serieId": seriesId,
                 }
                 result = to_notify_series_collection.insert_one(new_series)
                 to_verify_series_collection.update_one(
@@ -220,6 +230,7 @@ class Notification:
                                     "contentId": series["serieId"],
                                     "contentType": 'serie',
                                     "date": current_date,
+                                    "title": series["title"],
                                     "new_date": release_date
                                 }
                                 db_users.users.update_one(
@@ -254,6 +265,7 @@ class Notification:
                         "type": 'release',
                         "contentId": movie["movieId"],
                         "contentType": 'movie',
+                        "title": series["title"],
                         "date": current_date
                     }
                     db_users.users.update_one(
@@ -273,6 +285,7 @@ class Notification:
                         "type": 'release',
                         "contentId": series["serieId"],
                         "contentType": 'serie',
+                        "title": series["title"],
                         "date": current_date
                     }
                     db_users.users.update_one(

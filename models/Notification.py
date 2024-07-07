@@ -1,9 +1,12 @@
 from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
-from datetime import datetime, timedelta
+from datetime import datetime
 import requests
 from bson import ObjectId
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 load_dotenv()
 client = MongoClient(os.getenv("MONGODB_URI"))
@@ -67,13 +70,14 @@ class Notification:
             return None
     
     @staticmethod
-    def add_movie_to_notify(userId, movieId):
+    def add_movie_to_notify(userId, movieId, sendEmail):
         try:
             movie = to_notify_movies_collection.find_one({"userId": userId, "movieId": movieId})
             if movie is None:
                 new_movie = {
                     "userId": userId,
-                    "movieId": movieId
+                    "movieId": movieId,
+                    "sendEmail": sendEmail
                 }
                 result = to_notify_movies_collection.insert_one(new_movie)
                 to_verify_movies_collection.update_one(
@@ -152,13 +156,14 @@ class Notification:
             return None
 
     @staticmethod
-    def add_serie_to_notify(userId, seriesId):
+    def add_serie_to_notify(userId, seriesId, sendEmail):
         try:
             series = to_notify_series_collection.find_one({"userId": userId, "serieId": seriesId})
             if series is None:
                 new_series = {
                     "userId": userId,
                     "serieId": seriesId,
+                    "sendEmail": sendEmail
                 }
                 result = to_notify_series_collection.insert_one(new_series)
                 to_verify_series_collection.update_one(
@@ -249,6 +254,34 @@ class Notification:
             print(f"Error updating series dates: {e}")
 
     @staticmethod
+    def send_email(email, title, content_type, id):
+        sender_email = os.getenv('SENDER_EMAIL')
+        password = os.getenv('EMAIL_PASSWORD')
+        receiver_email = email
+
+        msg = MIMEMultipart('alternative')
+        msg['From'] = sender_email
+        msg['To'] = receiver_email
+
+        if content_type == 'movie':
+            msg['Subject'] = f"Filme {title} lançado!"
+            with open('assets/filme.html', 'r', encoding='utf-8') as file:
+                html = file.read()
+                html = html.format(title=title, type='tv', id=id)
+        else:
+            msg['Subject'] = f"Novo episódio: {title}!"
+            with open('assets/novo_ep.html', 'r', encoding='utf-8') as file:
+                html = file.read()
+                html = html.format(title=title, type='tv', id=id)
+
+        part = MIMEText(html, 'html')
+        msg.attach(part)
+
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as server:
+            server.login(sender_email, password)
+            server.sendmail(sender_email, receiver_email, msg.as_string())
+    
+    @staticmethod
     def notify_users():
         try:
             Notification.update_series_dates()
@@ -264,13 +297,17 @@ class Notification:
                         "type": 'release',
                         "contentId": movie["movieId"],
                         "contentType": 'movie',
-                        "title": series["title"],
+                        "title": movie["title"],
                         "date": current_date
                     }
                     db_users.users.update_one(
                         {"_id": ObjectId(userId)},
                         {"$push": {"notifications": notification_obj}}
                     )
+                    user = db_users.users.find_one({"_id": ObjectId(userId)})
+                    usermail = user.get("email")
+                    if notification["sendEmail"]:
+                        Notification.send_email(usermail, movie["title"], 'movie', movie["movieId"])
                     to_notify_movies_collection.delete_one({"_id": notification["_id"]})
                 to_verify_movies_collection.delete_one({"_id": movie["_id"]})
             
@@ -291,8 +328,13 @@ class Notification:
                         {"_id": ObjectId(userId)},
                         {"$push": {"notifications": notification_obj}}
                     )
+                    user = db_users.users.find_one({"_id": ObjectId(userId)})
+                    usermail = user.get("email")
+                    if notification["sendEmail"]:
+                        Notification.send_email(usermail, series["title"], 'serie', series["serieId"])
         except Exception as e:
             print(f"Error notifying users: {e}")
+            
 
     @staticmethod
     def get_user_notifications(userId):

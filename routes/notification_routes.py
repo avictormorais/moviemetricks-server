@@ -16,15 +16,18 @@ notification_bp = Blueprint("Notification_app", __name__)
 def create_notification():
     user_id = get_jwt_identity()
     movie_id = request.json.get('id')
+    send_email = request.json.get('send_email')
     
     if movie_id is None:
         return jsonify({"error": "Movie id is required"}), 400
+    if send_email is None:
+        send_email = False
     
     result = Notification.create_or_get_movie(movie_id)
     if result is None:
         return jsonify({"error": "Error creating movie"}), 500
     else:
-        Notification.add_movie_to_notify(user_id, movie_id)
+        Notification.add_movie_to_notify(user_id, movie_id, send_email)
         return jsonify({"message": "Movie created successfully"}), 201
     
 @notification_bp.route('/api/notification/series', methods=['POST'])
@@ -32,15 +35,18 @@ def create_notification():
 def create_series_notification():
     user_id = get_jwt_identity()
     serie_id = request.json.get('id')
+    send_email = request.json.get('send_email')
     
     if serie_id is None:
         return jsonify({"error": "Serie id is required"}), 400
+    if send_email is None:
+        send_email = False
     
     result = Notification.create_or_get_series(serie_id)
     if result is None:
         return jsonify({"error": "Error creating serie"}), 500
     else:
-        Notification.add_serie_to_notify(user_id, serie_id)
+        Notification.add_serie_to_notify(user_id, serie_id, send_email)
         return jsonify({"message": "Serie created successfully"}), 201
 
 @notification_bp.route('/api/notification/movie', methods=['DELETE'])

@@ -119,5 +119,32 @@ def check_releases():
 @jwt_required()
 def get_user_notifications():
     user_id = get_jwt_identity()
-    notifications = Notification.get_user_notifications(user_id)
-    return jsonify(notifications), 200
+    notification_id = request.args.get('id')
+    if notification_id is not None:
+        notification = Notification.get_user_notification(user_id, notification_id)
+        return jsonify(notification), 200
+    else:
+        notifications = Notification.get_user_notifications(user_id)
+        return jsonify(notifications), 200
+
+@notification_bp.route('/api/notifications', methods=['DELETE'])
+@jwt_required()
+def delete_user_notifications():
+    user_id = get_jwt_identity()
+    try:
+        notification_id = request.json.get('id') if request.json else None
+    except:
+        notification_id = None
+
+    if notification_id is not None:
+        result = Notification.remove_user_notification(user_id, notification_id)
+        if result is None:
+            return jsonify({"error": "Error deleting notification"}), 500
+        else:
+            return jsonify({"message": "Notification deleted successfully"}), 200
+    else:
+        result = Notification.remove_user_notifications(user_id)
+        if result is None:
+            return jsonify({"error": "Error deleting notifications"}), 500
+        else:
+            return jsonify({"message": "Notifications deleted successfully"}), 200

@@ -248,7 +248,6 @@ class Notification:
         except Exception as e:
             print(f"Error updating series dates: {e}")
 
-
     @staticmethod
     def notify_users():
         try:
@@ -302,4 +301,38 @@ class Notification:
             return user.get("notifications", [])
         except Exception as e:
             print(f"Error getting user notifications: {e}")
+            return None
+
+    @staticmethod
+    def remove_user_notifications(userId):
+        try:
+            result = db_users.users.update_one(
+                {"_id": ObjectId(userId)},
+                {"$set": {"notifications": []}}
+            )
+            return result.modified_count
+        except Exception as e:
+            print(f"Error removing user notifications: {e}")
+            return None
+        
+    @staticmethod
+    def remove_user_notification(userId, notificationId):
+        try:
+            result = db_users.users.update_one(
+                {"_id": ObjectId(userId)},
+                {"$pull": {"notifications": {"id": notificationId}}}
+            )
+            return result.modified_count
+        except Exception as e:
+            print(f"Error removing user notification: {e}")
+            return None
+        
+    @staticmethod
+    def get_user_notification(userId, notificationId):
+        try:
+            user = db_users.users.find_one({"_id": ObjectId(userId)})
+            notifications = user.get("notifications", [])
+            return next((notification for notification in notifications if notification.get("id") == notificationId), None)
+        except Exception as e:
+            print(f"Error getting user notification: {e}")
             return None

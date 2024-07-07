@@ -23,12 +23,12 @@ class Notification:
         try:
             movie = to_verify_movies_collection.find_one({"movieId": movieId})
             url = f"https://api.themoviedb.org/3/movie/{movieId}"
-            parametros = {'api_key': api_key}
+            parametros = {'api_key': api_key, 'language': 'pt-BR'}
             response = requests.get(url, params=parametros)
             if response.status_code == 200:
                 data = response.json()
                 release_dates_url = f"https://api.themoviedb.org/3/movie/{movieId}/release_dates"
-                release_dates_response = requests.get(release_dates_url, params=parametros)
+                release_dates_response = requests.get(release_dates_url, params={'api_key': api_key})
                 if release_dates_response.status_code == 200:
                     release_dates_data = release_dates_response.json()
                     release_dates_data.get('results').sort(key=lambda x: x.get('iso_3166_1'))
@@ -117,7 +117,7 @@ class Notification:
         try:
             series = to_verify_series_collection.find_one({"serieId": seriesId})
             url = f"https://api.themoviedb.org/3/tv/{seriesId}"
-            parametros = {'api_key': api_key}
+            parametros = {'api_key': api_key, 'language': 'pt-BR'}
             response = requests.get(url, params=parametros)
             if response.status_code == 200:
                 data = response.json()

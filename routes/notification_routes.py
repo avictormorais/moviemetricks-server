@@ -106,6 +106,10 @@ def get_series_notification():
 @notification_bp.route('/check_releases', methods=['GET'])
 def check_releases():
     try:
+        auth_header = request.headers.get('Authorization')
+        secret_key = os.getenv('CRON_SECRET')
+        if not secret_key or auth_header != f'Bearer {secret_key}':
+            return jsonify({"status": "error", "message": "Unauthorized"}), 401
         Notification.notify_users()
         return jsonify({"status": "success", "message": "Release check completed."}), 200
     except Exception as e:

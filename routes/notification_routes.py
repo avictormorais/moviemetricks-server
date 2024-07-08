@@ -16,15 +16,18 @@ notification_bp = Blueprint("Notification_app", __name__)
 def create_notification():
     user_id = get_jwt_identity()
     movie_id = request.json.get('id')
+    send_email = request.json.get('send_email')
     
     if movie_id is None:
         return jsonify({"error": "Movie id is required"}), 400
+    if send_email is None:
+        send_email = False
     
     result = Notification.create_or_get_movie(movie_id)
     if result is None:
         return jsonify({"error": "Error creating movie"}), 500
     else:
-        Notification.add_movie_to_notify(user_id, movie_id)
+        Notification.add_movie_to_notify(user_id, movie_id, send_email)
         return jsonify({"message": "Movie created successfully"}), 201
     
 @notification_bp.route('/api/notification/series', methods=['POST'])
@@ -32,15 +35,18 @@ def create_notification():
 def create_series_notification():
     user_id = get_jwt_identity()
     serie_id = request.json.get('id')
+    send_email = request.json.get('send_email')
     
     if serie_id is None:
         return jsonify({"error": "Serie id is required"}), 400
+    if send_email is None:
+        send_email = False
     
     result = Notification.create_or_get_series(serie_id)
     if result is None:
         return jsonify({"error": "Error creating serie"}), 500
     else:
-        Notification.add_serie_to_notify(user_id, serie_id)
+        Notification.add_serie_to_notify(user_id, serie_id, send_email)
         return jsonify({"message": "Serie created successfully"}), 201
 
 @notification_bp.route('/api/notification/movie', methods=['DELETE'])
@@ -106,6 +112,10 @@ def get_series_notification():
 @notification_bp.route('/check_releases', methods=['GET'])
 def check_releases():
     try:
+        auth_header = request.headers.get('Authorization')
+        secret_key = os.getenv('CRON_SECRET')
+        if not secret_key or auth_header != f'Bearer {secret_key}':
+            return jsonify({"status": "error", "message": "Unauthorized"}), 401
         Notification.notify_users()
         return jsonify({"status": "success", "message": "Release check completed."}), 200
     except Exception as e:
@@ -115,5 +125,32 @@ def check_releases():
 @jwt_required()
 def get_user_notifications():
     user_id = get_jwt_identity()
-    notifications = Notification.get_user_notifications(user_id)
-    return jsonify(notifications), 200
+    notification_id = request.args.get('id')
+    if notification_id is not None:
+        notification = Notification.get_user_notification(user_id, notification_id)
+        return jsonify(notification), 200
+    else:
+        notifications = Notification.get_user_notifications(user_id)
+        return jsonify(notifications), 200
+
+@notification_bp.route('/api/notifications', methods=['DELETE'])
+@jwt_required()
+def delete_user_notifications():
+    user_id = get_jwt_identity()
+    try:
+        notification_id = request.json.get('id') if request.json else None
+    except:
+        notification_id = None
+
+    if notification_id is not None:
+        result = Notification.remove_user_notification(user_id, notification_id)
+        if result is None:
+            return jsonify({"error": "Error deleting notification"}), 500
+        else:
+            return jsonify({"message": "Notification deleted successfully"}), 200
+    else:
+        result = Notification.remove_user_notifications(user_id)
+        if result is None:
+            return jsonify({"error": "Error deleting notifications"}), 500
+        else:
+            return jsonify({"message": "Notifications deleted successfully"}), 200

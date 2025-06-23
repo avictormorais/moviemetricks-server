@@ -47,5 +47,3 @@ O servidor estará disponível em `http://localhost:5000` (ou porta configurada)
 ## Deploy
 Este projeto pode ser facilmente implantado no Vercel usando o arquivo `vercel.json`.
 
-## Licença
-Este projeto está sob a licença MIT.
